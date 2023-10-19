@@ -10,7 +10,6 @@ export const AuthBoundary = () => {
 
     return (
         <Suspense fallback={<LoaderPages />}>
-            {/* NAV */}
             <Outlet />
         </Suspense>
     );

@@ -1,46 +1,53 @@
-import { ComponentType } from 'react';
+import { ElementType } from 'react';
 import { RouteObject } from 'react-router/dist/lib/context';
 
-type IRoute = {
+type GetElementProps = {
+    [key: string]: ElementType
+}
+type GetElement = (page: GetElementProps) => ElementType
+
+type Route = {
     path: RouteObject['path'];
-    Element: ComponentType;
-    ErrorBoundary?: RouteObject['ErrorBoundary']
+    Element: ElementType;
 }
 
-const pages: Record<any, any> = import.meta.glob("./pages/**/*.tsx", { eager: true });
+type RouteGroups = { auth: Array<Route>, common: Array<Route> }
 
-const extractKeyFromPath = (str: string) => {
-    const regex = /\/([^/]+)\.tsx$/;
-    const match = str.match(regex)?.[1];
+const pages: Record<any, any> = import.meta.glob('./pages/**/*.tsx', { eager: true });
 
-    if (!match) {
-        return ''
-    }
+const AUTH_PAGES = ['/user']
 
-    return match
-        .replace(/\b\w/g, match => match.toUpperCase()) // Capitalize First Letter
-        .replace(/:/g, '')
+const getElement: GetElement = (page) => {
+    const elementKey = Object.keys(page)[0]
+
+    return page[elementKey]
 }
 
-export const routes: Array<IRoute> = Object.keys(pages).map((path) => {
-    const normalizedPath = path
-        .match(/\.\/pages\/(.*)\.tsx$/)?.[1]
-        .replace(/\/index/, "")
-        .toLowerCase()
+const normalizePath = (path: string) => {
+    return path
+        .match(/\.\/pages(.*)\.tsx$/)?.[1]
+        .replace(/\/index/, '')
+        .replace(/\/home/, '/')
+        .toLowerCase();
+};
 
-    const elementKey: any = extractKeyFromPath(path)
-    const isIndex = normalizedPath === "index"
+export const routes: Array<Route> = Object.keys(pages).map((path) => {
+    const routePath = normalizePath(path);
+    const Element = getElement(pages[path])
 
     return {
-        path: isIndex ? "/" : `/${normalizedPath}`,
-        Element: pages[path][elementKey],
-    }
-})
+        path: routePath,
+        Element
+    };
+});
 
-// export const router = createBrowserRouter(
-//     routes.map(({ Element, ErrorBoundary, ...rest }) => ({
-//         ...rest,
-//         element: <Element />,
-//         ...(ErrorBoundary && { errorElement: <ErrorBoundary /> }),
-//     }))
-// );
+export const routeGroups: RouteGroups = routes.reduce((result, route) => {
+    const authRequired = AUTH_PAGES.includes(`${route.path}`)
+
+    result[authRequired ? 'auth' : 'common'].push(route)
+
+    return result
+}, {
+    auth: [],
+    common: []
+} as RouteGroups);

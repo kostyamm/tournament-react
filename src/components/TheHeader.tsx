@@ -1,32 +1,63 @@
-import { Menu, Layout, Drawer } from 'antd';
+import { Menu, Layout, Drawer, Grid, MenuProps } from 'antd';
 import { useState } from 'react';
-import { useMenuItems } from '../hooks/useMenuItems.tsx';
-import { CloudOutlined } from '@ant-design/icons';
+import { CloudOutlined, MenuOutlined } from '@ant-design/icons';
+import { Link, useLocation } from 'react-router-dom';
 
-const { Header } = Layout;
+const { useBreakpoint } = Grid;
+
+type MenuItem = Required<MenuProps>['items'][number];
+
+const menuItems: Array<MenuItem> = [
+    { key: '/matches', label: <Link to="/matches">Matches</Link> },
+    { key: '/user', label: <Link to="/user">User</Link> },
+    { key: '/login', label: <Link to="/login">Login</Link> },
+];
 
 export const TheHeader = () => {
     const [showDrawer, setShowDrawer] = useState(false);
     const toggleDrawer = () => setShowDrawer(!showDrawer);
 
-    const { baseMenuItems, dynamicMenuItems } = useMenuItems(toggleDrawer);
+    const breakpoints = useBreakpoint();
+    const { pathname } = useLocation();
+
+    const menuItemsMobile = [{
+        key: 'toggle-menu',
+        itemIcon: <MenuOutlined />,
+        onClick: toggleDrawer,
+    }];
+
+    const dynamicMenuItems = breakpoints.md ? menuItems : menuItemsMobile;
+    const activeItem: MenuItem = menuItems.find(({ key }) => pathname.includes(key));
 
     return (
-        <Header style={HeaderStyles}>
-            <CloudOutlined style={{ color: '#fff', fontSize: 38 }} />
+        <Layout.Header style={HeaderStyles}>
+            <Link to="/" style={{ fontSize: 38, height: '100%' }}>
+                <CloudOutlined />
+            </Link>
 
-            <Menu theme="dark" mode="horizontal" items={dynamicMenuItems} style={{ minWidth: '50%', justifyContent: 'end' }} />
+            <Menu
+                selectable={!!activeItem?.key}
+                selectedKeys={[activeItem?.key]}
+                mode="horizontal"
+                items={dynamicMenuItems}
+                style={MenuStyles}
+            />
 
             <Drawer title="Main menu" placement="right" onClose={toggleDrawer} open={showDrawer}>
                 <Menu
                     mode="inline"
-                    defaultSelectedKeys={['1']}
                     style={DrawerMenuStyles}
-                    items={baseMenuItems}
+                    items={menuItems}
                 />
             </Drawer>
-        </Header>
+        </Layout.Header>
     );
+};
+
+const HeaderStyles = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
 };
 
 const DrawerMenuStyles = {
@@ -34,8 +65,7 @@ const DrawerMenuStyles = {
     borderRight: 0,
 };
 
-const HeaderStyles = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+const MenuStyles = {
+    minWidth: '50%',
+    justifyContent: 'end',
 };
